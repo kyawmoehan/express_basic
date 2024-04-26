@@ -1,32 +1,54 @@
 const express = require('express');
 const { v4: uuid } = require('uuid');
 const { z } = require('zod');
+const { Sequelize, DataTypes } = require('sequelize');
 
 const app = express()
 const port = 3000
 
 app.use(express.json());
 
-const shops = [
+// database 
+const sequelize = new Sequelize(
+    'testing',
+    'root',
+    'Kyawmoehan01',
     {
-        id: uuid(),
-        title: 'Shoes',
-        description: "Good product",
-        price: 15000
+        host: "localhost",
+        dialect: 'mysql'
+    }
+);
+
+const Shop = sequelize.define('shops', {
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
     },
-    {
-        id: uuid(),
-        title: 'T-shirt',
-        description: "Good product",
-        price: 7500
+    title: {
+        type: DataTypes.STRING,
+        allowNull: false
     },
-    {
-        id: uuid(),
-        title: 'Bug',
-        description: "Good product",
-        price: 750
+    description: {
+        type: DataTypes.TEXT,
     },
-];
+    price: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    }
+});
+
+sequelize.authenticate().then(() => {
+    console.log('Database connection successfully!');
+}).catch(error => {
+    console.log('Database connection error', error);
+});
+
+sequelize.sync().then(() => {
+    console.log('Sync tables')
+}).catch(error => {
+    console.log('Sync tables error', error)
+})
 
 // validation
 const shopSchema = z.object({
@@ -104,53 +126,88 @@ const validateParamStringData = (schema) => {
 
 // routes
 app.post('/shops', validateBodyData(shopSchema), (req, res) => {
-    const newId = uuid();
-    shops.push({ id: newId, ...req.body });
-    res.json(req.body)
+    const { title, description, price } = req.body;
+    console.log(title, description, price);
+    Shop.create({
+        title: title,
+        description: description,
+        price: price,
+    }).then((shop) => {
+        res.json(shop)
+    }).catch(error => {
+        console.log(error);
+    })
 })
 
 app.get('/shops', (req, res) => {
-    res.json(shops);
+    Shop.findAll().then((shops) => {
+        res.json(shops);
+    }).catch(error => {
+        console.log(error);
+    })
 })
 
 app.get('/shops/:id', validateParamStringData(paramSchemaString), (req, res) => {
-    const shop = shops.find(shop => shop.id == req.params.id);
-    if (!shop) {
-        res.status(404).json({
-            message: 'Shop not found'
-        });
-    }
-    res.json(shop);
+    Shop.findOne({
+        where: {
+            id: req.params.id
+        }
+    }).then(shop => {
+        if (!shop) {
+            res.json({
+                message: 'Not found!'
+            });
+        } else {
+            res.json(shop);
+        }
+    }).catch(error => {
+        console.log(error);
+    })
 })
 
 app.put('/shops/:id', (req, res) => {
-    const shopIndex = shops.findIndex(shop => shop.id == req.params.id);
-
-    if (shopIndex === -1) {
-        res.status(404).json({
-            message: 'Shop not found'
-        });
-    }
-
-    const shop = {
-        id: req.params.id,
-        ...req.body
-    }
-    shops[shopIndex] = shop;
-    res.send(shop)
+    const { title, description, price } = req.body;
+    Shop.update(
+        {
+            title: title,
+            description: description,
+            price: price
+        },
+        {
+            where: {
+                id: req.params.id
+            }
+        }
+    ).then(shop => {
+        console.log(shop);
+        res.json(shop);
+    }).catch(error => {
+        console.log(error);
+    })
 })
 
 app.delete('/shops/:id', (req, res) => {
-    const shopData = shops.filter(shop => shop.id !== req.params.id);
-    if (!shopData) {
-        res.status(404).json({
-            message: 'Shop not found'
+    Shop.destroy({
+        where: {
+            id: req.params.id
+        }
+    }).then(shop => {
+        console.log(shop);
+        if (shop === 0) {
+            res.json({
+                message: 'Not found'
+            })
+        }
+        res.json({
+            message: `Delete shop ${req.params.id}`
         });
-    }
-
-    res.send(shopData)
+    }).catch(error => {
+        console.log(error);
+    })
 })
 
+
+// listen
 app.listen(port, () => {
     try {
         console.log(`Example app listening on port ${port}`)
