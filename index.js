@@ -11,10 +11,10 @@ app.use(express.json());
 // database 
 const sequelize = new Sequelize(
     'testing',
-    'root',
-    'Kyawmoehan01',
+    'kyaw',
+    'node_kyaw',
     {
-        host: "localhost",
+        host: "mysql_server",
         dialect: 'mysql'
     }
 );

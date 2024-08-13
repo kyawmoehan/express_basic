@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  # node.js service
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/app
+      - '/app/node_modules'
+    depends_on:
+      - mysql_server
+   # MySQL service
+  mysql_server:
+    image: mysql:8.0  # Use the MySQL image of your choice
+    environment:
+      MYSQL_ROOT_PASSWORD: node_kyaw
+      MYSQL_DATABASE: testing
+      MYSQL_USER: kyaw
+      MYSQL_PASSWORD: node_kyaw
+    ports:
+      - "3306:3306"  # Expose port 3306 on the host
